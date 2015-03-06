@@ -303,6 +303,16 @@ if(WITH_ENSENSO)
   endif(ENSENSO_FOUND)
 endif(WITH_ENSENSO)
 
+# libfreenect2
+option(WITH_LIBFREENECT2 "Build libfreenect2 support" TRUE)
+if(WITH_LIBFREENECT2)
+  find_package(Libfreenect2) # FindLibfreenect2.cmake
+  if (LIBFREENECT2_FOUND)
+    set(HAVE_LIBFREENECT2 ON)
+    include_directories(SYSTEM "${LIBFREENECT2_INCLUDE_DIRS}")
+  endif(LIBFREENECT2_FOUND)
+endif(WITH_LIBFREENECT2)
+
 # Intel Perceptional Computing Interface (PXCAPI)
 option(WITH_PXCAPI "Build PXC Device support" TRUE)
 if(WITH_PXCAPI)

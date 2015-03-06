@@ -153,6 +153,23 @@ if(build)
             src/ensenso_grabber.cpp
             )
     endif(ENSENSO_FOUND)
+    
+        ## libfreenect2
+    OPTION(BUILD_LIBFREENECT2 "Build the libfreenect2 Grabber." ON)
+    MARK_AS_ADVANCED(BUILD_LIBFREENECT2)
+    if(NOT BUILD_LIBFREENECT2)
+      # Set LIBFREENECT2_FOUND to false locally to avoid building anything Ensenso related
+      # Remember that other modules (libraries) need to check explicitly for BUILD_ENSENSO
+      set(LIBFREENECT2_FOUND FALSE)
+    endif()
+    if(LIBFREENECT2_FOUND)
+        set(LIBFREENECT2_GRABBER_INCLUDES
+            include/pcl/io/libfreenect2_grabber.h
+            )
+        set(LIBFREENECT2_GRABBER_SOURCES
+            src/libfreenect2_grabber.cpp
+            )
+    endif(LIBFREENECT2_FOUND)
 
 	if(PXCAPI_FOUND)
 		set(PXC_GRABBER_INCLUDES
@@ -226,6 +243,7 @@ if(build)
         ${FZAPI_GRABBER_SOURCES}
         ${ENSENSO_GRABBER_SOURCES}
         ${PXC_GRABBER_SOURCES}
+        ${LIBFREENECT2_GRABBER_SOURCES}
         )
     if(PNG_FOUND)
       list(APPEND srcs
@@ -270,6 +288,7 @@ if(build)
         ${FZAPI_GRABBER_INCLUDES}
         ${ENSENSO_GRABBER_INCLUDES}
         ${PXC_GRABBER_INCLUDES}
+        ${LIBFREENECT2_GRABBER_INCLUDES}
         )
 
     set(compression_incs
@@ -329,6 +348,10 @@ if(build)
       target_link_libraries("${LIB_NAME}" ${OPENNI_LIBRARIES})
     endif(OPENNI_FOUND)
 
+    if(LIBFREENECT2_FOUND)
+      target_link_libraries("${LIB_NAME}" ${LIBFREENECT2_LIBRARIES})
+    endif(LIBFREENECT2_FOUND)
+
     if(FZAPI_FOUND)
       target_link_libraries("${LIB_NAME}" ${FZAPI_LIBS})
 	  if(WIN32)
@@ -360,6 +383,9 @@ if(build)
     if(ENSENSO_FOUND)
       list(APPEND EXT_DEPS ensenso)
     endif(ENSENSO_FOUND)
+    if(LIBFREENECT2_FOUND)
+      list(APPEND EXT_DEPS libfreenect2)
+    endif(LIBFREENECT2_FOUND)
 
     PCL_MAKE_PKGCONFIG("${LIB_NAME}" "${SUBSYS_NAME}" "${SUBSYS_DESC}"
       "${SUBSYS_DEPS}" "${EXT_DEPS}" "" "" "")
