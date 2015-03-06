@@ -81,6 +81,9 @@ namespace pcl
         typedef pcl::io::IRImage IRImage;
         typedef pcl::io::Image Image;
 
+        // Callback signatures
+        typedef void (sig_cb_libfreenect2_depth_image) (const boost::shared_ptr<DepthImage>&);
+        
       public:
         /** \brief Constructor
         */

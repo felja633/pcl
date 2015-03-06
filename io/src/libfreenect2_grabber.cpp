@@ -91,30 +91,6 @@ pcl::io::Libfreenect2Grabber::start ()
 {
   try
   {
-    // check if we need to start/stop any stream
-    if (image_required_ && !device_->isColorStreamStarted () )
-    {
-      block_signals ();
-      device_->startColorStream ();
-      startSynchronization ();
-    }
-
-    if (depth_required_ && !device_->isDepthStreamStarted ())
-    {
-      block_signals ();
-      if (device_->hasColorSensor () && device_->isImageRegistrationModeSupported () )
-      {
-        device_->setImageRegistrationMode (true);
-      }
-      device_->startDepthStream ();
-      startSynchronization ();
-    }
-
-    if (ir_required_ && !device_->isIRStreamStarted () )
-    {
-      block_signals ();
-      device_->startIRStream ();
-    }
     running_ = true;
   }
   catch (IOException& ex)
@@ -129,18 +105,10 @@ pcl::io::Libfreenect2Grabber::start ()
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void
-pcl::io::OpenNI2Grabber::stop ()
+pcl::io::Libfreenect2Grabber::stop ()
 {
   try
   {
-    if (device_->hasDepthSensor () && device_->isDepthStreamStarted () )
-      device_->stopDepthStream ();
-
-    if (device_->hasColorSensor () && device_->isColorStreamStarted () )
-      device_->stopColorStream ();
-
-    if (device_->hasIRSensor () && device_->isIRStreamStarted ())
-      device_->stopIRStream ();
 
     running_ = false;
   }
@@ -152,28 +120,28 @@ pcl::io::OpenNI2Grabber::stop ()
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool
-pcl::io::OpenNI2Grabber::isRunning () const
+pcl::io::Libfreenect2::isRunning () const
 {
   return (running_);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void
-pcl::io::OpenNI2Grabber::signalsChanged ()
+pcl::io::Libfreenect2::signalsChanged ()
 {
 
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 std::string
-pcl::io::OpenNI2Grabber::getName () const
+pcl::io::Libfreenect2::getName () const
 {
   return (std::string ("Libfreenect2Grabber"));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 float
-pcl::io::OpenNI2Grabber::getFramesPerSecond () const
+pcl::io::Libfreenect2::getFramesPerSecond () const
 {
   return 30.0;
 }
