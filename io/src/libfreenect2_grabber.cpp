@@ -73,6 +73,17 @@ pcl::io::Libfreenect2Grabber::Libfreenect2Grabber () :
 running_(false)
 {
   // initialize driver
+  libfreenect2::Freenect2 freenect2;
+  device_ = freenect2.openDefaultDevice();
+  if (device_ == 0)
+    PCL_THROW_EXCEPTION (pcl::IOException, "Could not open the freenect2 device");
+  
+  // Only listen for depth at this point
+  listener_ = new libfreenect2::SyncMultiFrameListener(libfreenect2::Frame::Depth);
+  
+  device_->setIrAndDepthFrameListener(listener_);
+  
+  createSignal<sig_cb_libfreenect2_depth_image> ();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -81,6 +92,10 @@ pcl::io::Libfreenect2Grabber::~Libfreenect2Grabber () throw ()
   try
   {
     stop ();
+    
+    disconnect_all_slots<sig_cb_libfreenect2_depth_image> ();
+    
+    delete listener_;
   }
   catch (...)
   {
@@ -92,18 +107,12 @@ pcl::io::Libfreenect2Grabber::~Libfreenect2Grabber () throw ()
 void
 pcl::io::Libfreenect2Grabber::start ()
 {
-  try
-  {
+    if (isRunning ())
+        return;
+    
     running_ = true;
-  }
-  catch (IOException& ex)
-  {
-    PCL_THROW_EXCEPTION (pcl::IOException, "Could not start streams. Reason: " << ex.what ());
-  }
-
-  // workaround, since the first frame is corrupted
-  //boost::this_thread::sleep (boost::posix_time::seconds (1));
-  unblock_signals ();
+    
+    grabber_thread_ = boost::thread (&pcl::io::Libfreenect2Grabber::processGrabbing, this);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -140,6 +149,28 @@ float
 pcl::io::Libfreenect2Grabber::getFramesPerSecond () const
 {
   return 30.0;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void
+pcl::io::Libfreenect2Grabber::processGrabbing ()
+{
+    bool continue_grabbing = running_;
+    
+    while (continue_grabbing)
+    {     
+        listener_->waitForNewFrame(frames_);
+        
+        if (num_slots<sig_cb_libfreenect2_depth_image> () > 0)
+        {
+            libfreenect2::Frame *depth = frames_[libfreenect2::Frame::Depth];
+            
+            // TODO: Wrap depth image and signal callback
+            //depth_signal_(depth_);
+            
+        }
+        listener_->release(frames_);
+    }
 }
 
 #endif // HAVE_OPENNI2

@@ -56,6 +56,9 @@
 #include <pcl/io/image_depth.h>
 #include <pcl/io/image_ir.h>
 
+#include <libfreenect2/libfreenect2.hpp>
+#include <libfreenect2/frame_listener_impl.h>
+
 namespace pcl
 {
   struct PointXYZ;
@@ -112,7 +115,14 @@ namespace pcl
         getFramesPerSecond () const;
 
       protected:
+        void processGrabbing ();
+      
+        boost::thread grabber_thread_;
+        libfreenect2::Freenect2Device *device_;
+        libfreenect2::SyncMultiFrameListener *listener_;
+        libfreenect2::FrameMap frames_;
         bool running_;
+        boost::signals2::signal<sig_cb_libfreenect2_depth_image>* depth_signal_;
 
       public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
