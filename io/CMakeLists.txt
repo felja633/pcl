@@ -159,7 +159,7 @@ if(build)
     MARK_AS_ADVANCED(BUILD_LIBFREENECT2)
     if(NOT BUILD_LIBFREENECT2)
       # Set LIBFREENECT2_FOUND to false locally to avoid building anything Ensenso related
-      # Remember that other modules (libraries) need to check explicitly for BUILD_ENSENSO
+      # Remember that other modules (libraries) need to check explicitly for BUILD_LIBFREENECT2
       set(LIBFREENECT2_FOUND FALSE)
     endif()
     if(LIBFREENECT2_FOUND)

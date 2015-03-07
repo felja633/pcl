@@ -38,6 +38,7 @@
  */
 
 #include <pcl/pcl_config.h>
+
 #ifdef HAVE_LIBFREENECT2
 
 #include <pcl/io/libfreenect2_grabber.h>
@@ -47,6 +48,7 @@
 #include <pcl/console/print.h>
 #include <pcl/io/boost.h>
 #include <pcl/exceptions.h>
+#include <libfreenect2/libfreenect2.hpp>
 #include <iostream>
 
 namespace pcl
@@ -67,7 +69,8 @@ namespace pcl
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-pcl::io::Libfreenect2Grabber::Libfreenect2Grabber ()
+pcl::io::Libfreenect2Grabber::Libfreenect2Grabber () :
+running_(false)
 {
   // initialize driver
 }
@@ -120,28 +123,21 @@ pcl::io::Libfreenect2Grabber::stop ()
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool
-pcl::io::Libfreenect2::isRunning () const
+pcl::io::Libfreenect2Grabber::isRunning () const
 {
   return (running_);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void
-pcl::io::Libfreenect2::signalsChanged ()
-{
-
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 std::string
-pcl::io::Libfreenect2::getName () const
+pcl::io::Libfreenect2Grabber::getName () const
 {
   return (std::string ("Libfreenect2Grabber"));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 float
-pcl::io::Libfreenect2::getFramesPerSecond () const
+pcl::io::Libfreenect2Grabber::getFramesPerSecond () const
 {
   return 30.0;
 }

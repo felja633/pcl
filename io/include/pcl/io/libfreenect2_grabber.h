@@ -111,6 +111,9 @@ namespace pcl
         virtual float
         getFramesPerSecond () const;
 
+      protected:
+        bool running_;
+
       public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     };
