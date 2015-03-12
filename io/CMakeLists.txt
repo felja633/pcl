@@ -13,6 +13,28 @@ endif(WIN32)
 PCL_ADD_DOC("${SUBSYS_NAME}")
 
 if(build)
+
+	  # OpenNI2 and libfreenect2 grabbers need these
+    if(OPENNI2_FOUND OR LIBFREENECT2_FOUND)
+			set(IMAGE_INCLUDES
+		      include/pcl/io/image_metadata_wrapper.h
+		      include/pcl/io/image.h
+		      include/pcl/io/image_rgb24.h
+		      include/pcl/io/image_yuv422.h
+		      include/pcl/io/image_ir.h
+		      include/pcl/io/image_depth.h
+		    )
+
+		    set(IMAGE_SOURCES
+		      src/image_rgb24.cpp
+		      src/image_yuv422.cpp
+		      src/image_ir.cpp
+		      src/image_depth.cpp
+		    )
+		endif(OPENNI2_FOUND OR LIBFREENECT2_FOUND)
+
+ 
+
     ## OpenNI 2.x
     OPTION(BUILD_OPENNI2 "Build the OpenNI 2 Grabber." OFF)
     MARK_AS_ADVANCED(BUILD_OPENNI2)
@@ -21,23 +43,7 @@ if(build)
       # Remember that other modules (libraries) need to check explicitly for BUILD_OPENNI2
       set(OPENNI2_FOUND FALSE)
     endif()
-    if(OPENNI2_FOUND)
-      set(IMAGE_INCLUDES
-        include/pcl/io/image_metadata_wrapper.h
-        include/pcl/io/image.h
-        include/pcl/io/image_rgb24.h
-        include/pcl/io/image_yuv422.h
-        include/pcl/io/image_ir.h
-        include/pcl/io/image_depth.h
-      )
-
-      set(IMAGE_SOURCES
-        src/image_rgb24.cpp
-        src/image_yuv422.cpp
-        src/image_ir.cpp
-        src/image_depth.cpp
-      )
-
+    if(OPENNI2_FOUND)      
         set(OPENNI2_GRABBER_INCLUDES
             include/pcl/io/openni2_grabber.h
             )
