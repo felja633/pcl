@@ -92,7 +92,7 @@ pcl::io::Libfreenect2Grabber::~Libfreenect2Grabber () throw ()
   try
   {
     stop ();
-    
+    delete device;
     disconnect_all_slots<sig_cb_libfreenect2_depth_image> ();
     
     delete listener_;
@@ -110,6 +110,8 @@ pcl::io::Libfreenect2Grabber::start ()
     if (isRunning ())
         return;
     
+		device_->start();
+
     running_ = true;
     
     grabber_thread_ = boost::thread (&pcl::io::Libfreenect2Grabber::processGrabbing, this);
@@ -121,7 +123,7 @@ pcl::io::Libfreenect2Grabber::stop ()
 {
   try
   {
-
+		dev->stop();
     running_ = false;
   }
   catch (IOException& ex)
@@ -155,22 +157,44 @@ pcl::io::Libfreenect2Grabber::getFramesPerSecond () const
 void
 pcl::io::Libfreenect2Grabber::processGrabbing ()
 {
-    bool continue_grabbing = running_;
+
+  bool continue_grabbing = running_;
+  
+  while (continue_grabbing)
+  {     
+    listener_->waitForNewFrame(frames_);
     
-    while (continue_grabbing)
-    {     
-        listener_->waitForNewFrame(frames_);
+    if (num_slots<sig_cb_libfreenect2_depth_image> () > 0)
+    {
+        libfreenect2::Frame *depth = frames_[libfreenect2::Frame::Depth];
         
-        if (num_slots<sig_cb_libfreenect2_depth_image> () > 0)
-        {
-            libfreenect2::Frame *depth = frames_[libfreenect2::Frame::Depth];
-            
-            // TODO: Wrap depth image and signal callback
-            //depth_signal_(depth_);
-            
-        }
-        listener_->release(frames_);
+				boost::shared_ptr<DepthImage> image = processDepthImage(depth);
+        // TODO: Wrap depth image and signal callback
+        //depth_signal_(depth_);
+        
     }
+
+    listener_->release(frames_);
+  }
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+boost::shared_ptr<DepthImage> 
+pcl::io::Libfreenect2Grabber::processDepthImage(libfreenect2::Frame *depth)
+{
+	//(openni::VideoStream& stream)
+
+	openni::VideoFrameRef frame;
+	stream.readFrame (&frame);
+	FrameWrapper::Ptr frameWrapper = boost::make_shared<Openni2FrameWrapper>(frame);
+
+	float focalLength = device_->getDepthFocalLength ();
+
+	float baseline = device_->getBaseline();
+	pcl::uint64_t no_sample_value = device_->getShadowValue();
+	pcl::uint64_t shadow_value = no_sample_value;
+
+	boost::shared_ptr<DepthImage> image  = 
+	boost::make_shared<DepthImage> (frameWrapper, baseline, focalLength, shadow_value, no_sample_value);
+}
 #endif // HAVE_OPENNI2
