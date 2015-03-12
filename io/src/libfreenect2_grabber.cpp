@@ -96,6 +96,7 @@ pcl::io::Libfreenect2Grabber::~Libfreenect2Grabber () throw ()
     disconnect_all_slots<sig_cb_libfreenect2_depth_image> ();
     
     delete listener_;
+    delete device_;
   }
   catch (...)
   {
@@ -171,6 +172,9 @@ pcl::io::Libfreenect2Grabber::processGrabbing ()
         }
         listener_->release(frames_);
     }
+    
+    device_->stop();
+    device_->close();
 }
 
 #endif // HAVE_OPENNI2
