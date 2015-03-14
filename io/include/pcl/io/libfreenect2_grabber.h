@@ -55,6 +55,9 @@
 #include <pcl/io/image_yuv422.h>
 #include <pcl/io/image_depth.h>
 #include <pcl/io/image_ir.h>
+#include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
+#include <pcl/io/image_metadata_wrapper.h>
 
 #include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener_impl.h>
@@ -67,8 +70,65 @@ namespace pcl
   struct PointXYZI;
   template <typename T> class PointCloud;
 
+     
+
   namespace io
   {
+	 class libreenect2FrameWrapper : public pcl::io::FrameWrapper
+		    {
+		      public:
+		        libreenect2FrameWrapper (libfreenect2::Frame* metadata) 
+		        {
+							metadata_ = metadata;
+						}
+
+		        virtual inline const void*
+		        getData () const
+		        {
+		          return (metadata_->data);
+		        }
+
+		        virtual inline unsigned
+		        getDataSize () const
+		        {
+		          return (metadata_->width*metadata_->height*metadata_->bytes_per_pixel);
+		        }
+
+		        virtual inline unsigned
+		        getWidth () const
+		        {
+		          return (metadata_->width);
+		        }
+
+		        virtual inline unsigned
+		        getHeight () const
+		        {
+		          return (metadata_->height);
+		        }
+
+		        virtual inline unsigned
+		        getFrameID () const
+		        {
+		          return (0);
+		        }
+
+		        virtual inline uint64_t
+		        getTimestamp () const
+		        {
+		          return (0);
+		        }
+
+
+		        /*const inline libfreenect2::Frame*
+		        getMetaData () const
+		        {
+		          return (metadata_);
+		        }*/
+
+		      private:
+		        libfreenect2::Frame* metadata_; // Internally reference counted
+		    };
+
 
     /** \brief Grabber for libfreenect2 devices (i.e., Kinect 2)
     * \ingroup io
@@ -116,8 +176,9 @@ namespace pcl
 
       protected:
         void processGrabbing ();
-      
+      	void processDepthImage(libfreenect2::Frame *depth);
         boost::thread grabber_thread_;
+				libfreenect2::Freenect2* freenect2_;
         libfreenect2::Freenect2Device *device_;
         libfreenect2::SyncMultiFrameListener *listener_;
         libfreenect2::FrameMap frames_;

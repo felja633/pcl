@@ -60,6 +60,7 @@
 #include <pcl/io/openni_grabber.h>
 #include <pcl/io/oni_grabber.h>
 #include <pcl/io/pcd_grabber.h>
+#include <pcl/io/libfreenect2_grabber.h>
 #include <pcl/exceptions.h>
 
 #include "openni_capture.h"
@@ -406,7 +407,7 @@ struct ImageView
   showDepth (const PtrStepSz<const unsigned short>& depth) 
   { 
      if (viz_)
-       viewerDepth_->showShortImage (depth.data, depth.cols, depth.rows, 0, 5000, true); 
+       viewerDepth_->showFloatImage ((float*)depth.data, depth.cols, depth.rows, 0, 5000, true); 
   }
   
   void
@@ -420,7 +421,7 @@ struct ImageView
     generated_depth_.download(data, c);
 
     if (viz_)
-        viewerDepth_->showShortImage (&data[0], generated_depth_.cols(), generated_depth_.rows(), 0, 5000, true);
+        viewerDepth_->showShortImage (&data[0], generated_depth_.cols(), generated_depth_.rows(), 0, 4500, true);
   }
 
   void
@@ -766,7 +767,7 @@ struct KinFuApp
   void execute(const PtrStepSz<const unsigned short>& depth, const PtrStepSz<const KinfuTracker::PixelRGB>& rgb24, bool has_data)
   {        
     bool has_image = false;
-      
+
     if (has_data)
     {
       depth_device_.upload (depth.data, depth.step, depth.rows, depth.cols);
@@ -957,15 +958,41 @@ struct KinFuApp
     data_ready_cond_.notify_one ();
   }
 
+  void source_asdf_device(const boost::shared_ptr<pcl::io::DepthImage>& depth_wrapper)  
+  {        
+		//std::cout<<"enter callback"<<std::endl;
+    
+			boost::mutex::scoped_try_lock lock(data_ready_mutex_);
+			if (exit_ || !lock)
+					return;
+			//std::cout<<"after boost::mutex::scoped_try_lock lock(data_ready_mutex_)"<<std::endl;
+			depth_.cols = depth_wrapper->getWidth();
+			depth_.rows = depth_wrapper->getHeight();
+			depth_.step = depth_.cols * depth_.elemSize();
+
+			source_depth_data_.resize(depth_.cols * depth_.rows * 2);
+			//std::cout<<"depth_wrapper->fillDepthImageRaw(depth_.cols, depth_.rows, &source_depth_data_[0])"<<std::endl;		
+			depth_wrapper->fillDepthImageRaw(depth_.cols, depth_.rows, &source_depth_data_[0]);
+			//std::cout<<"depth_.data = &source_depth_data_[0]"<<std::endl;
+			depth_.data = &source_depth_data_[0];     
+    
+		//std::cout<<"notify callback"<<std::endl;
+    data_ready_cond_.notify_one();
+		//std::cout<<"return from callback"<<std::endl;
+  }
+
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   void
   startMainLoop (bool triggered_capture)
   {   
-    using namespace openni_wrapper;
-    typedef boost::shared_ptr<DepthImage> DepthImagePtr;
-    typedef boost::shared_ptr<Image> ImagePtr;
-        
-    boost::function<void (const ImagePtr&, const DepthImagePtr&, float constant)> func1_dev = boost::bind (&KinFuApp::source_cb2_device, this, _1, _2, _3);
+		std::cout<<"startMainLoop"<<std::endl;
+    //using namespace openni_wrapper;
+    typedef boost::shared_ptr<pcl::io::DepthImage> DepthImagePtr;
+    //typedef boost::shared_ptr<Image> ImagePtr;
+
+		boost::function<void (const DepthImagePtr&)> func2_dev = boost::bind (&KinFuApp::source_asdf_device, this, _1);		        
+
+    /*boost::function<void (const ImagePtr&, const DepthImagePtr&, float constant)> func1_dev = boost::bind (&KinFuApp::source_cb2_device, this, _1, _2, _3);
     boost::function<void (const DepthImagePtr&)> func2_dev = boost::bind (&KinFuApp::source_cb1_device, this, _1);
 
     boost::function<void (const ImagePtr&, const DepthImagePtr&, float constant)> func1_oni = boost::bind (&KinFuApp::source_cb2_oni, this, _1, _2, _3);
@@ -981,24 +1008,34 @@ struct KinFuApp
     if ( pcd_source_ && !capture_.providesCallback<void (const pcl::PointCloud<pcl::PointXYZRGBA>::ConstPtr&)>() )
     {
       std::cout << "grabber doesn't provide pcl::PointCloud<pcl::PointXYZRGBA> callback !\n";
-    }
-    boost::signals2::connection c = pcd_source_? capture_.registerCallback (func3) : need_colors ? capture_.registerCallback (func1) : capture_.registerCallback (func2);
+    }*/
+    //boost::signals2::connection c = pcd_source_? capture_.registerCallback (func3) : need_colors ? capture_.registerCallback (func1) : capture_.registerCallback (func2);
+		//std::cout<<"capture_.registerCallback"<<std::endl;
+		boost::signals2::connection c = capture_.registerCallback (func2_dev);
+		
 
     {
       boost::unique_lock<boost::mutex> lock(data_ready_mutex_);
 
+			
       if (!triggered_capture)
+			{
+					std::cout<<"Start stream"<<std::endl;
           capture_.start (); // Start stream
-
+			}
       bool scene_view_not_stopped= viz_ ? !scene_cloud_view_.cloud_viewer_->wasStopped () : true;
       bool image_view_not_stopped= viz_ ? !image_view_.viewerScene_->wasStopped () : true;
           
       while (!exit_ && scene_view_not_stopped && image_view_not_stopped)
       { 
+				//std::cout<<"in while"<<std::endl;
         if (triggered_capture)
             capture_.start(); // Triggers new frame
+
+				//std::cout<<"data_ready_cond_.timed_wait"<<std::endl;
         bool has_data = data_ready_cond_.timed_wait (lock, boost::posix_time::millisec(100));        
-                       
+        //std::cout<<"after data_ready_cond_.timed_wait has_data = "<<has_data<<std::endl;         
+
         try { this->execute (depth_, rgb24_, has_data); }
         catch (const std::bad_alloc& /*e*/) { cout << "Bad alloc" << endl; break; }
         catch (const std::exception& /*e*/) { cout << "Exception" << endl; break; }
@@ -1269,6 +1306,11 @@ main (int argc, char* argv[])
       capture.reset (new pcl::PCDGrabber<pcl::PointXYZRGBA> (pcd_files, fps_pcd, false));
       triggered_capture = true;
       pcd_input = true;
+    }
+    else if (pc::find_switch (argc, argv, "--libfreenect2"))
+    {
+			capture.reset(new pcl::io::Libfreenect2Grabber());
+			std::cout<<"capture.reset(new pcl::io::Libfreenect2Grabber()) \n";
     }
     else if (pc::parse_argument (argc, argv, "-eval", eval_folder) > 0)
     {

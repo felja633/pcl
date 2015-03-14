@@ -51,6 +51,8 @@
 #include <libfreenect2/libfreenect2.hpp>
 #include <iostream>
 
+//using namespace pcl::io;
+
 namespace pcl
 {
   // Treat color as chars, float32, or uint32
@@ -73,8 +75,8 @@ pcl::io::Libfreenect2Grabber::Libfreenect2Grabber () :
 running_(false)
 {
   // initialize driver
-  libfreenect2::Freenect2 freenect2;
-  device_ = freenect2.openDefaultDevice();
+  freenect2_ = new libfreenect2::Freenect2();
+  device_ = freenect2_->openDefaultDevice();
   if (device_ == 0)
     PCL_THROW_EXCEPTION (pcl::IOException, "Could not open the freenect2 device");
   
@@ -82,8 +84,9 @@ running_(false)
   listener_ = new libfreenect2::SyncMultiFrameListener(libfreenect2::Frame::Depth);
   
   device_->setIrAndDepthFrameListener(listener_);
-  
-  createSignal<sig_cb_libfreenect2_depth_image> ();
+	running_ = false;
+
+  depth_signal_ = createSignal<sig_cb_libfreenect2_depth_image> ();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -92,9 +95,10 @@ pcl::io::Libfreenect2Grabber::~Libfreenect2Grabber () throw ()
   try
   {
     stop ();
-    delete device;
+
     disconnect_all_slots<sig_cb_libfreenect2_depth_image> ();
-    
+    delete device_;
+		delete freenect2_;
     delete listener_;
   }
   catch (...)
@@ -109,9 +113,8 @@ pcl::io::Libfreenect2Grabber::start ()
 {
     if (isRunning ())
         return;
-    
-		device_->start();
 
+		device_->start();
     running_ = true;
     
     grabber_thread_ = boost::thread (&pcl::io::Libfreenect2Grabber::processGrabbing, this);
@@ -123,7 +126,7 @@ pcl::io::Libfreenect2Grabber::stop ()
 {
   try
   {
-		dev->stop();
+		//device_->stop();
     running_ = false;
   }
   catch (IOException& ex)
@@ -166,12 +169,11 @@ pcl::io::Libfreenect2Grabber::processGrabbing ()
     
     if (num_slots<sig_cb_libfreenect2_depth_image> () > 0)
     {
-        libfreenect2::Frame *depth = frames_[libfreenect2::Frame::Depth];
-        
-				boost::shared_ptr<DepthImage> image = processDepthImage(depth);
-        // TODO: Wrap depth image and signal callback
-        //depth_signal_(depth_);
-        
+      libfreenect2::Frame *depth = frames_[libfreenect2::Frame::Depth];
+      
+			//Wrap depth image and signal callback
+			processDepthImage(depth);
+       
     }
 
     listener_->release(frames_);
@@ -179,22 +181,25 @@ pcl::io::Libfreenect2Grabber::processGrabbing ()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-boost::shared_ptr<DepthImage> 
-pcl::io::Libfreenect2Grabber::processDepthImage(libfreenect2::Frame *depth)
+void
+pcl::io::Libfreenect2Grabber::processDepthImage (libfreenect2::Frame *depth)
 {
-	//(openni::VideoStream& stream)
 
-	openni::VideoFrameRef frame;
-	stream.readFrame (&frame);
-	FrameWrapper::Ptr frameWrapper = boost::make_shared<Openni2FrameWrapper>(frame);
+	
+	FrameWrapper::Ptr frameWrapper = boost::make_shared<libreenect2FrameWrapper>(depth);
 
-	float focalLength = device_->getDepthFocalLength ();
+	libfreenect2::Freenect2Device::IrCameraParams ir_camera_params = device_->getIrCameraParams();
+	float focalLength = ir_camera_params.fx;
 
-	float baseline = device_->getBaseline();
-	pcl::uint64_t no_sample_value = device_->getShadowValue();
+	float baseline = 0.0;//device_->getBaseline();
+	pcl::uint64_t no_sample_value = 0;//device_->getShadowValue();
 	pcl::uint64_t shadow_value = no_sample_value;
 
-	boost::shared_ptr<DepthImage> image  = 
-	boost::make_shared<DepthImage> (frameWrapper, baseline, focalLength, shadow_value, no_sample_value);
+	
+	boost::shared_ptr<pcl::io::DepthImage> image = boost::make_shared<pcl::io::DepthImage> (frameWrapper, baseline, focalLength, shadow_value, no_sample_value);
+
+	depth_signal_->operator ()(image);
+	//std::cout<<"libfreenect2 sent image"<<std::endl; 
 }
-#endif // HAVE_OPENNI2
+
+#endif // HAVE_LIBFREENECT2
