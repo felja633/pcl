@@ -407,7 +407,7 @@ struct ImageView
   showDepth (const PtrStepSz<const unsigned short>& depth) 
   { 
      if (viz_)
-       viewerDepth_->showFloatImage ((float*)depth.data, depth.cols, depth.rows, 0, 5000, true); 
+       viewerDepth_->showShortImage (depth.data, depth.cols, depth.rows, 0, 5000, true); 
   }
   
   void
@@ -790,7 +790,7 @@ struct KinFuApp
         pose_processor_->processPose (kinfu_.getCameraPose ());
       }
 
-      image_view_.showDepth (depth);
+      //image_view_.showDepth (depth);
       //image_view_.showGeneratedDepth(kinfu_, kinfu_.getCameraPose());
     }
 
@@ -970,7 +970,7 @@ struct KinFuApp
 			depth_.rows = depth_wrapper->getHeight();
 			depth_.step = depth_.cols * depth_.elemSize();
 
-			source_depth_data_.resize(depth_.cols * depth_.rows * 2);
+			source_depth_data_.resize(depth_.cols * depth_.rows);
 			//std::cout<<"depth_wrapper->fillDepthImageRaw(depth_.cols, depth_.rows, &source_depth_data_[0])"<<std::endl;		
 			depth_wrapper->fillDepthImageRaw(depth_.cols, depth_.rows, &source_depth_data_[0]);
 			//std::cout<<"depth_.data = &source_depth_data_[0]"<<std::endl;

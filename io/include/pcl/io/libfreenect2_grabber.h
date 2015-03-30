@@ -80,18 +80,26 @@ namespace pcl
 		        libreenect2FrameWrapper (libfreenect2::Frame* metadata) 
 		        {
 							metadata_ = metadata;
+							//std::cout << "==== START OF FRAME =====" << std::endl;
+							data = new unsigned short[getWidth()*getHeight()];
+							float* p = (float*) metadata->data;
+							for (unsigned i=0; i < getWidth()*getHeight(); ++i) {
+									data[i] = static_cast<unsigned short>(p[i]); // float32 -> unsigned short
+									//std::cout << p[i] << " -> " << data[i] << "\n";									
+							}
+							//std::cout << "==== END OF FRAME ======" << std::endl;
 						}
 
 		        virtual inline const void*
 		        getData () const
 		        {
-		          return (metadata_->data);
+		          return (data);
 		        }
 
 		        virtual inline unsigned
 		        getDataSize () const
 		        {
-		          return (metadata_->width*metadata_->height*metadata_->bytes_per_pixel);
+		          return (metadata_->width*metadata_->height*sizeof(unsigned short));
 		        }
 
 		        virtual inline unsigned
@@ -126,6 +134,7 @@ namespace pcl
 		        }*/
 
 		      private:
+						unsigned short* data;
 		        libfreenect2::Frame* metadata_; // Internally reference counted
 		    };
 
