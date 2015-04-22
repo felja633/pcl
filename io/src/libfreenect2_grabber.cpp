@@ -100,6 +100,7 @@ pcl::io::Libfreenect2Grabber::~Libfreenect2Grabber () throw ()
     delete device_;
 		delete freenect2_;
     delete listener_;
+    delete device_;
   }
   catch (...)
   {
@@ -161,9 +162,7 @@ void
 pcl::io::Libfreenect2Grabber::processGrabbing ()
 {
 
-  bool continue_grabbing = running_;
-  
-  while (continue_grabbing)
+  while (running_)
   {     
     listener_->waitForNewFrame(frames_);
     
@@ -178,6 +177,9 @@ pcl::io::Libfreenect2Grabber::processGrabbing ()
 
     listener_->release(frames_);
   }
+
+	device_->stop();
+  device_->close();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
