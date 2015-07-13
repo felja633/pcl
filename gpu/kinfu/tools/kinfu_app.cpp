@@ -958,39 +958,35 @@ struct KinFuApp
     data_ready_cond_.notify_one ();
   }
 
-  void source_asdf_device(const boost::shared_ptr<pcl::io::DepthImage>& depth_wrapper)  
+  void source_libfreenect2_device(const boost::shared_ptr<pcl::io::DepthImage>& depth_wrapper)  
   {        
-		//std::cout<<"enter callback"<<std::endl;
     
-			boost::mutex::scoped_try_lock lock(data_ready_mutex_);
-			if (exit_ || !lock)
-					return;
-			//std::cout<<"after boost::mutex::scoped_try_lock lock(data_ready_mutex_)"<<std::endl;
-			depth_.cols = depth_wrapper->getWidth();
-			depth_.rows = depth_wrapper->getHeight();
-			depth_.step = depth_.cols * depth_.elemSize();
+		boost::mutex::scoped_try_lock lock(data_ready_mutex_);
+		if (exit_ || !lock)
+				return;
 
-			source_depth_data_.resize(depth_.cols * depth_.rows);
-			//std::cout<<"depth_wrapper->fillDepthImageRaw(depth_.cols, depth_.rows, &source_depth_data_[0])"<<std::endl;		
-			depth_wrapper->fillDepthImageRaw(depth_.cols, depth_.rows, &source_depth_data_[0]);
-			//std::cout<<"depth_.data = &source_depth_data_[0]"<<std::endl;
-			depth_.data = &source_depth_data_[0];     
-    
-		//std::cout<<"notify callback"<<std::endl;
+		depth_.cols = depth_wrapper->getWidth();
+		depth_.rows = depth_wrapper->getHeight();
+		depth_.step = depth_.cols * depth_.elemSize();
+
+		source_depth_data_.resize(depth_.cols * depth_.rows);
+		depth_wrapper->fillDepthImageRaw(depth_.cols, depth_.rows, &source_depth_data_[0]);
+		depth_.data = &source_depth_data_[0];     
+
     data_ready_cond_.notify_one();
-		//std::cout<<"return from callback"<<std::endl;
+
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   void
   startMainLoop (bool triggered_capture)
   {   
-		std::cout<<"startMainLoop"<<std::endl;
+		
     //using namespace openni_wrapper;
     typedef boost::shared_ptr<pcl::io::DepthImage> DepthImagePtr;
     //typedef boost::shared_ptr<Image> ImagePtr;
 
-		boost::function<void (const DepthImagePtr&)> func2_dev = boost::bind (&KinFuApp::source_asdf_device, this, _1);		        
+		boost::function<void (const DepthImagePtr&)> func2_dev = boost::bind (&KinFuApp::source_libfreenect2_device, this, _1);		        
 
     /*boost::function<void (const ImagePtr&, const DepthImagePtr&, float constant)> func1_dev = boost::bind (&KinFuApp::source_cb2_device, this, _1, _2, _3);
     boost::function<void (const DepthImagePtr&)> func2_dev = boost::bind (&KinFuApp::source_cb1_device, this, _1);
@@ -1028,13 +1024,11 @@ struct KinFuApp
           
       while (!exit_ && scene_view_not_stopped && image_view_not_stopped)
       { 
-				//std::cout<<"in while"<<std::endl;
+
         if (triggered_capture)
             capture_.start(); // Triggers new frame
 
-				//std::cout<<"data_ready_cond_.timed_wait"<<std::endl;
-        bool has_data = data_ready_cond_.timed_wait (lock, boost::posix_time::millisec(100));        
-        //std::cout<<"after data_ready_cond_.timed_wait has_data = "<<has_data<<std::endl;         
+        bool has_data = data_ready_cond_.timed_wait (lock, boost::posix_time::millisec(100));            
 
         try { this->execute (depth_, rgb24_, has_data); }
         catch (const std::bad_alloc& /*e*/) { cout << "Bad alloc" << endl; break; }
