@@ -193,7 +193,7 @@ pcl::io::Libfreenect2Grabber::processDepthImage (libfreenect2::Frame *depth)
 	libfreenect2::Freenect2Device::IrCameraParams ir_camera_params = device_->getIrCameraParams();
 	float focalLength = ir_camera_params.fx;
 
-	float baseline = 0.0;//device_->getBaseline();
+	float baseline = 0.0f;//device_->getBaseline();
 	pcl::uint64_t no_sample_value = 0;//device_->getShadowValue();
 	pcl::uint64_t shadow_value = no_sample_value;
 
